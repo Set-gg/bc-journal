@@ -465,8 +465,9 @@ const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
 
 // ── STATE ──────────────────────────────────────────────
-let trades   = [];
-let capitals = [];
+let trades      = [];
+let capitals    = [];
+let dataStale   = true;   // Bug 1 fix: solo recargar cuando hay cambios
 let equityChart = null, symbolChart = null;
 
 // ── HELPERS ────────────────────────────────────────────
@@ -512,6 +513,7 @@ async function loadAll() {
   else { trades = tr.data || []; }
   if (ca.error) { showToast('Error cargando capital: ' + ca.error.message, true); }
   else { capitals = ca.data || []; }
+  dataStale = false;
   setLoading(false);
 }
 
@@ -569,24 +571,44 @@ async function doLogout() {
 }
 
 // ── INIT — runs after DOM is fully loaded ──────────────
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const loginScreen = document.getElementById('login-screen');
+  const topbar      = document.getElementById('topbar');
+  const mainEl      = document.getElementById('main-app');
 
+  // Bug 4 fix: show neutral loader while checking existing session
+  // to avoid flash of login screen on refresh
+  const initLoader = document.getElementById('init-loader');
+
+  function showApp() {
+    if (initLoader) initLoader.style.display = 'none';
+    loginScreen.style.display = 'none';
+    if (topbar) topbar.style.display = '';
+    if (mainEl) mainEl.style.display = '';
+    document.getElementById('f-date').value = today();
+    document.getElementById('c-date').value = today();
+    loadAll().then(() => { renderDashboard(); updateCapMetrics(); });
+  }
+
+  function showLogin() {
+    if (initLoader) initLoader.style.display = 'none';
+    loginScreen.style.display = 'flex';
+    if (topbar) topbar.style.display = 'none';
+    if (mainEl) mainEl.style.display = 'none';
+  }
+
+  // Bug 4 fix: check existing session first (avoids flash)
+  const { data: { session: existingSession } } = await supa.auth.getSession();
+  if (existingSession) {
+    showApp();
+  } else {
+    showLogin();
+  }
+
+  // Then listen for future changes (login/logout)
   supa.auth.onAuthStateChange((event, session) => {
-    const topbar = document.getElementById('topbar');
-    const mainEl = document.getElementById('main-app');
-    if (session) {
-      loginScreen.style.display = 'none';
-      if (topbar) topbar.style.display = '';
-      if (mainEl) mainEl.style.display = '';
-      document.getElementById('f-date').value = today();
-      document.getElementById('c-date').value = today();
-      loadAll().then(() => { renderDashboard(); updateCapMetrics(); });
-    } else {
-      loginScreen.style.display = 'flex';
-      if (topbar) topbar.style.display = 'none';
-      if (mainEl) mainEl.style.display = 'none';
-    }
+    if (event === 'SIGNED_IN')  showApp();
+    if (event === 'SIGNED_OUT') showLogin();
   });
 });
 
@@ -596,9 +618,11 @@ function switchTab(id, btn) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('sec-' + id).classList.add('active');
   btn.classList.add('active');
-  if (id === 'dashboard') { loadAll().then(() => { renderDashboard(); updateCapMetrics(); }); }
-  if (id === 'historial') { loadAll().then(() => renderHistory()); }
-  if (id === 'capital')   { loadAll().then(() => { updateCapMetrics(); renderCapHistory(); }); }
+  // Bug 1 fix: only reload from DB when data is stale
+  const refresh = dataStale;
+  if (id === 'dashboard') { (refresh ? loadAll() : Promise.resolve()).then(() => { renderDashboard(); updateCapMetrics(); }); }
+  if (id === 'historial') { (refresh ? loadAll() : Promise.resolve()).then(() => renderHistory()); }
+  if (id === 'capital')   { (refresh ? loadAll() : Promise.resolve()).then(() => { updateCapMetrics(); renderCapHistory(); }); }
 }
 
 function switchSubTab(id, btn) {
@@ -739,6 +763,7 @@ async function saveTrade() {
   btn.disabled = false; btn.textContent = 'Guardar trade';
   if (error) { showToast('Error al guardar: ' + error.message, true); return; }
   trades.unshift(inserted);
+  dataStale = false;   // just reloaded
   clearForm();
   showToast('✓ Trade guardado');
   renderDashboard();
@@ -761,6 +786,7 @@ async function deleteTrade(id) {
     await supa.storage.from('screenshots').remove([trade.screenshot_url]);
   }
   trades = trades.filter(t => t.id !== id);
+  dataStale = false;
   showToast('Trade eliminado');
   renderHistory(); renderDashboard();
 }
@@ -785,6 +811,7 @@ async function saveCapital() {
   btn.disabled = false; btn.textContent = 'Guardar movimiento';
   if (error) { showToast('Error al guardar: ' + error.message, true); return; }
   capitals.unshift(insertedCap);
+  dataStale = false;
   clearCapForm();
   updateCapMetrics();
   showToast('✓ Movimiento guardado', false);
@@ -801,6 +828,7 @@ async function deleteCapital(id) {
   const { error } = await supa.from('capitals').delete().eq('id', id);
   if (error) { showToast('Error al eliminar: ' + error.message, true); return; }
   capitals = capitals.filter(c => c.id !== id);
+  dataStale = false;
   showToast('Movimiento eliminado');
   updateCapMetrics(); renderCapHistory(); renderDashboard();
 }
@@ -867,9 +895,15 @@ function renderDashboard() {
   const wins   = trades.filter(t => t.result === 'win').length;
   const losses = trades.filter(t => t.result === 'loss').length;
   const totalPnl = trades.reduce((a, t) => a + t.pnl, 0);
-  const totalPct = trades.reduce((a, t) => a + t.pct, 0);
-  const best   = Math.max(...trades.map(t => t.pnl));
-  const worst  = Math.min(...trades.map(t => t.pnl));
+  // Bug 5 fix: % acumulado correcto = P&L total / capital neto
+  const deps_    = capitals.filter(c => c.type === 'deposito').reduce((a, c) => a + c.amount, 0);
+  const rets_    = capitals.filter(c => c.type === 'retiro').reduce((a, c) => a + c.amount, 0);
+  const capBase  = deps_ - rets_;
+  const totalPct = capBase > 0 ? (totalPnl / capBase) * 100 : null;
+  // Bug 2 fix: guard against empty array → -Infinity/Infinity
+  const pnlValues = trades.map(t => t.pnl);
+  const best  = pnlValues.length ? Math.max(...pnlValues) : 0;
+  const worst = pnlValues.length ? Math.min(...pnlValues) : 0;
   const wr     = Math.round(wins / n * 100);
 
   document.getElementById('m-total').textContent   = n;
@@ -879,7 +913,9 @@ function renderDashboard() {
   document.getElementById('m-wl').textContent      = wins + 'W / ' + losses + 'L';
   document.getElementById('m-pnl').textContent     = (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(2);
   document.getElementById('m-pnl').className       = 'metric-value ' + (totalPnl > 0 ? 'c-green' : totalPnl < 0 ? 'c-red' : 'c-muted');
-  document.getElementById('m-pct-total').textContent = (totalPct >= 0 ? '+' : '') + totalPct.toFixed(2) + '% acumulado';
+  document.getElementById('m-pct-total').textContent = totalPct !== null
+    ? (totalPct >= 0 ? '+' : '') + totalPct.toFixed(2) + '% sobre capital'
+    : 'registrá capital para ver %';
   document.getElementById('m-best').textContent    = '$' + best.toFixed(2);
   document.getElementById('m-worst-label').textContent = 'Peor: $' + worst.toFixed(2);
 
@@ -891,8 +927,11 @@ function renderDashboard() {
   const eqColors = eqData.map(v => v >= 0 ? '#00d68f' : '#ff5c5c');
   const lastEq   = eqData[eqData.length - 1];
 
-  if (equityChart) equityChart.destroy();
-  equityChart = new Chart(document.getElementById('equityChart'), {
+  // Bug 3 fix: only create chart if canvas is in visible section
+  const eqCanvas = document.getElementById('equityChart');
+  if (!eqCanvas) return;
+  if (equityChart) { try { equityChart.destroy(); } catch(e) {} equityChart = null; }
+  equityChart = new Chart(eqCanvas, {
     type: 'line',
     data: {
       labels: eqLabels,
@@ -925,8 +964,10 @@ function renderDashboard() {
   const symLabels = Object.keys(symMap);
   const symData   = symLabels.map(s => parseFloat(symMap[s].toFixed(2)));
 
-  if (symbolChart) symbolChart.destroy();
-  symbolChart = new Chart(document.getElementById('symbolChart'), {
+  const symCanvas = document.getElementById('symbolChart');
+  if (!symCanvas) return;
+  if (symbolChart) { try { symbolChart.destroy(); } catch(e) {} symbolChart = null; }
+  symbolChart = new Chart(symCanvas, {
     type: 'bar',
     data: {
       labels: symLabels,
@@ -1066,6 +1107,11 @@ function exportCSV() {
   URL.revokeObjectURL(a.href);
 }
 </script>
+
+<!-- INIT LOADER — Bug 4 fix: prevents flash of login on refresh -->
+<div id="init-loader" style="position:fixed;inset:0;background:#0b0e14;z-index:10001;display:flex;align-items:center;justify-content:center;">
+  <div style="font-family:'Space Mono',monospace;font-size:12px;color:#4e5669;letter-spacing:.1em">CARGANDO...</div>
+</div>
 
 <!-- LOGIN SCREEN -->
 <div id="login-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:10000;display:flex;align-items:center;justify-content:center;">
