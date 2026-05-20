@@ -189,7 +189,7 @@ body { min-height: 100vh; display: flex; flex-direction: column; }
 </head>
 <body>
 
-<div class="topbar" style="display:none">
+<div id="topbar" class="topbar" style="display:none">
   <div class="logo">B<span>&</span>C <span style="color:var(--text3)">|</span> JOURNAL</div>
   <nav class="nav">
     <button class="nav-btn active" onclick="switchTab('dashboard', this)">Dashboard</button>
@@ -210,7 +210,7 @@ body { min-height: 100vh; display: flex; flex-direction: column; }
 </div>
 </div>
 
-<main class="main" style="display:none">
+<main id="main-app" class="main" style="display:none">
 
   <!-- DASHBOARD -->
   <div id="sec-dashboard" class="section active">
@@ -534,8 +534,7 @@ document.addEventListener('paste', function(e) {
 });
 
 // ── AUTH ───────────────────────────────────────────────
-const loginScreen = document.getElementById('login-screen');
-const appBody     = document.querySelector('.topbar, .main');
+// loginScreen resolved after DOM ready (see DOMContentLoaded below)
 
 async function doLogin() {
   const email = document.getElementById('login-email').value.trim();
@@ -543,11 +542,24 @@ async function doLogin() {
   const btn   = document.getElementById('login-btn');
   const errEl = document.getElementById('login-error');
   errEl.style.display = 'none';
+
+  if (!email || !pass) {
+    errEl.textContent = 'Ingresá email y contraseña';
+    errEl.style.display = 'block';
+    return;
+  }
+
   btn.disabled = true; btn.textContent = 'Ingresando...';
-  const { error } = await supa.auth.signInWithPassword({ email, password: pass });
-  btn.disabled = false; btn.textContent = 'Ingresar';
-  if (error) {
-    errEl.textContent = 'Email o contraseña incorrectos';
+  try {
+    const { data, error } = await supa.auth.signInWithPassword({ email, password: pass });
+    btn.disabled = false; btn.textContent = 'Ingresar';
+    if (error) {
+      errEl.textContent = '✗ ' + error.message;
+      errEl.style.display = 'block';
+    }
+  } catch(e) {
+    btn.disabled = false; btn.textContent = 'Ingresar';
+    errEl.textContent = '✗ Error de conexión: ' + e.message;
     errEl.style.display = 'block';
   }
 }
@@ -556,23 +568,27 @@ async function doLogout() {
   await supa.auth.signOut();
 }
 
-supa.auth.onAuthStateChange((event, session) => {
-  if (session) {
-    loginScreen.style.display = 'none';
-    document.querySelector('.topbar').style.display = '';
-    document.querySelector('.main').style.display = '';
-    document.getElementById('f-date').value = today();
-    document.getElementById('c-date').value = today();
-    loadAll().then(() => { renderDashboard(); updateCapMetrics(); });
-  } else {
-    loginScreen.style.display = 'flex';
-    document.querySelector('.topbar').style.display = 'none';
-    document.querySelector('.main').style.display = 'none';
-  }
-});
+// ── INIT — runs after DOM is fully loaded ──────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const loginScreen = document.getElementById('login-screen');
 
-// ── INIT ───────────────────────────────────────────────
-// Auth state change handles init
+  supa.auth.onAuthStateChange((event, session) => {
+    const topbar = document.getElementById('topbar');
+    const mainEl = document.getElementById('main-app');
+    if (session) {
+      loginScreen.style.display = 'none';
+      if (topbar) topbar.style.display = '';
+      if (mainEl) mainEl.style.display = '';
+      document.getElementById('f-date').value = today();
+      document.getElementById('c-date').value = today();
+      loadAll().then(() => { renderDashboard(); updateCapMetrics(); });
+    } else {
+      loginScreen.style.display = 'flex';
+      if (topbar) topbar.style.display = 'none';
+      if (mainEl) mainEl.style.display = 'none';
+    }
+  });
+});
 
 // ── TABS ───────────────────────────────────────────────
 function switchTab(id, btn) {
