@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Boom & Crash Journal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0b0e14;
+  --bg2: #11151e;
+  --bg3: #181d28;
+  --surface: #1e2432;
+  --surface2: #252c3b;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --text: #e8ecf4;
+  --text2: #8a93a8;
+  --text3: #4e5669;
+  --green: #00d68f;
+  --green-dim: rgba(0,214,143,0.12);
+  --red: #ff5c5c;
+  --red-dim: rgba(255,92,92,0.12);
+  --blue: #4d9fff;
+  --blue-dim: rgba(77,159,255,0.12);
+  --amber: #ffb938;
+  --amber-dim: rgba(255,185,56,0.12);
+  --purple: #a78bfa;
+  --purple-dim: rgba(167,139,250,0.12);
+  --mono: 'Space Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+  --radius: 10px;
+  --radius-lg: 16px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 15px; }
+body { min-height: 100vh; display: flex; flex-direction: column; }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 3px; }
+
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 32px; border-bottom: 1px solid var(--border);
+  background: var(--bg); position: sticky; top: 0; z-index: 100;
+  backdrop-filter: blur(12px);
+}
+.logo { font-family: var(--mono); font-size: 13px; font-weight: 700; letter-spacing: .08em; color: var(--text); }
+.logo span { color: var(--green); }
+.nav { display: flex; gap: 4px; }
+.nav-btn {
+  padding: 7px 18px; border-radius: 8px; font-size: 13px;
+  cursor: pointer; border: none; background: none; color: var(--text2);
+  font-family: var(--sans); transition: all .15s; font-weight: 400;
+}
+.nav-btn:hover { background: var(--surface); color: var(--text); }
+.nav-btn.active { background: var(--surface2); color: var(--text); font-weight: 500; }
+.export-btn {
+  padding: 7px 16px; border-radius: 8px; font-size: 13px; cursor: pointer;
+  border: 1px solid var(--border2); background: none; color: var(--text2);
+  font-family: var(--sans); transition: all .15s; display: flex; align-items: center; gap: 6px;
+}
+.export-btn:hover { background: var(--surface); color: var(--text); }
+
+.main { flex: 1; padding: 32px; max-width: 1200px; margin: 0 auto; width: 100%; }
+.section { display: none; }
+.section.active { display: block; }
+
+/* METRICS */
+.metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+.metrics-grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 28px; }
+.metric-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 20px 22px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.metric-card.accent-green { border-color: rgba(0,214,143,0.25); }
+.metric-card.accent-purple { border-color: rgba(167,139,250,0.25); }
+.metric-label { font-size: 11px; font-family: var(--mono); letter-spacing: .1em; color: var(--text3); text-transform: uppercase; }
+.metric-value { font-family: var(--mono); font-size: 24px; font-weight: 700; line-height: 1; }
+.metric-sub { font-size: 12px; color: var(--text3); }
+.c-green { color: var(--green); } .c-red { color: var(--red); }
+.c-blue { color: var(--blue); } .c-amber { color: var(--amber); }
+.c-purple { color: var(--purple); } .c-muted { color: var(--text2); }
+
+.charts-row { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; margin-bottom: 28px; }
+.chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 22px 24px; }
+.chart-title { font-size: 12px; font-family: var(--mono); letter-spacing: .08em; color: var(--text3); text-transform: uppercase; margin-bottom: 18px; }
+.chart-wrap { position: relative; width: 100%; height: 200px; }
+
+.empty-dash { text-align: center; padding: 60px 20px; color: var(--text3); font-family: var(--mono); font-size: 13px; letter-spacing: .05em; }
+.empty-dash .icon { font-size: 48px; margin-bottom: 12px; opacity: .3; display: block; }
+
+/* FORM */
+.form-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 28px 32px; max-width: 680px; }
+.form-title { font-family: var(--mono); font-size: 13px; letter-spacing: .1em; color: var(--text3); text-transform: uppercase; margin-bottom: 24px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group.full { grid-column: 1 / -1; }
+.form-group label { font-size: 11px; font-family: var(--mono); letter-spacing: .08em; color: var(--text3); text-transform: uppercase; }
+.form-group input, .form-group select, .form-group textarea {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+  color: var(--text); font-family: var(--sans); font-size: 14px;
+  padding: 10px 14px; outline: none; transition: border-color .15s; width: 100%;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--border2); }
+.form-group select { appearance: none; cursor: pointer; }
+.form-group textarea { resize: vertical; min-height: 80px; }
+.form-group input[type="file"] { padding: 8px 12px; cursor: pointer; font-size: 13px; color: var(--text2); }
+.form-actions { display: flex; gap: 10px; margin-top: 24px; align-items: center; }
+.btn-save { padding: 10px 24px; border-radius: var(--radius); font-size: 14px; font-weight: 600; cursor: pointer; border: none; background: var(--green); color: #000; font-family: var(--sans); transition: opacity .15s; }
+.btn-save:hover { opacity: .85; }
+.btn-save.purple { background: var(--purple); }
+.btn-clear { padding: 10px 20px; border-radius: var(--radius); font-size: 14px; cursor: pointer; border: 1px solid var(--border2); background: none; color: var(--text2); font-family: var(--sans); transition: all .15s; }
+.btn-clear:hover { background: var(--surface2); color: var(--text); }
+.form-success { font-family: var(--mono); font-size: 12px; color: var(--green); display: none; }
+.form-success.purple { color: var(--purple); }
+
+/* TABS INTERNOS */
+.sub-tabs { display: flex; gap: 4px; margin-bottom: 24px; }
+.sub-tab { padding: 7px 20px; border-radius: 8px; font-size: 13px; cursor: pointer; border: 1px solid var(--border); background: none; color: var(--text2); font-family: var(--sans); transition: all .15s; }
+.sub-tab:hover { background: var(--surface); color: var(--text); }
+.sub-tab.active { background: var(--surface2); color: var(--text); border-color: var(--border2); font-weight: 500; }
+
+/* HISTORY */
+.filter-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+.filter-bar select { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text2); font-family: var(--sans); font-size: 13px; padding: 8px 14px; outline: none; cursor: pointer; appearance: none; min-width: 140px; }
+.filter-bar select:focus { border-color: var(--border2); }
+.hist-stats { font-family: var(--mono); font-size: 11px; color: var(--text3); padding: 6px 0; letter-spacing: .06em; }
+
+.trade-table { width: 100%; border-collapse: collapse; }
+.trade-table th { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--text3); padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.trade-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
+.trade-table tr:last-child td { border-bottom: none; }
+.trade-table tr:hover td { background: rgba(255,255,255,.02); }
+.table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+
+.badge { display: inline-block; padding: 3px 10px; border-radius: 6px; font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.badge-buy { background: var(--blue-dim); color: var(--blue); }
+.badge-sell { background: var(--red-dim); color: var(--red); }
+.badge-win { background: var(--green-dim); color: var(--green); }
+.badge-loss { background: var(--red-dim); color: var(--red); }
+.badge-be { background: var(--amber-dim); color: var(--amber); }
+.badge-dep { background: var(--green-dim); color: var(--green); }
+.badge-ret { background: var(--purple-dim); color: var(--purple); }
+
+.pnl-pos { color: var(--green); font-family: var(--mono); font-weight: 700; }
+.pnl-neg { color: var(--red); font-family: var(--mono); font-weight: 700; }
+.pnl-zero { color: var(--text2); font-family: var(--mono); }
+.setup-cell { color: var(--text2); font-size: 12px; max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.date-cell { font-family: var(--mono); font-size: 12px; color: var(--text2); white-space: nowrap; }
+.sym-cell { font-family: var(--mono); font-size: 12px; white-space: nowrap; }
+
+.thumb-btn { width: 44px; height: 34px; border-radius: 6px; overflow: hidden; border: 1px solid var(--border2); cursor: pointer; background: none; padding: 0; transition: opacity .15s; }
+.thumb-btn:hover { opacity: .8; }
+.thumb-btn img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.no-img { color: var(--text3); font-size: 11px; }
+
+.del-btn { background: none; border: 1px solid var(--border); border-radius: 6px; color: var(--text3); cursor: pointer; padding: 5px 9px; font-size: 13px; transition: all .15s; }
+.del-btn:hover { border-color: var(--red); color: var(--red); background: var(--red-dim); }
+
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 999; align-items: center; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal-inner { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius-lg); padding: 20px; position: relative; max-width: 90vw; max-height: 90vh; overflow: auto; }
+.modal-inner img { max-width: 80vw; max-height: 80vh; border-radius: 8px; display: block; }
+.modal-close { position: absolute; top: 12px; right: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text2); cursor: pointer; padding: 4px 10px; font-size: 16px; line-height: 1; }
+.modal-close:hover { color: var(--text); }
+
+.recent-table { width: 100%; }
+.recent-table th { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--text3); padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+.recent-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
+.recent-table tr:last-child td { border-bottom: none; }
+
+/* CAPITAL SECTION */
+.capital-layout { display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px; align-items: start; }
+.cap-info { font-size: 13px; color: var(--text2); line-height: 1.7; margin-bottom: 16px; }
+.cap-note { font-family: var(--mono); font-size: 11px; color: var(--text3); background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; margin-top: 16px; letter-spacing: .03em; }
+
+@media (max-width: 900px) {
+  .metrics-grid, .metrics-grid-5 { grid-template-columns: repeat(2, 1fr); }
+  .charts-row { grid-template-columns: 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+  .main { padding: 20px 16px; }
+  .topbar { padding: 14px 16px; }
+  .capital-layout { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="topbar" style="display:none">
+  <div class="logo">B<span>&</span>C <span style="color:var(--text3)">|</span> JOURNAL</div>
+  <nav class="nav">
+    <button class="nav-btn active" onclick="switchTab('dashboard', this)">Dashboard</button>
+    <button class="nav-btn" onclick="switchTab('nuevo', this)">+ Trade</button>
+    <button class="nav-btn" onclick="switchTab('capital', this)">Capital</button>
+    <button class="nav-btn" onclick="switchTab('historial', this)">Historial</button>
+  </nav>
+  <div style="display:flex;gap:8px;align-items:center">
+  <button class="export-btn" onclick="doLogout()" title="Cerrar sesión"
+    style="border-color:rgba(255,92,92,0.3);color:var(--text3)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    Salir
+  </button>
+  <button class="export-btn" onclick="exportCSV()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Exportar CSV
+  </button>
+</div>
+</div>
+
+<main class="main" style="display:none">
+
+  <!-- DASHBOARD -->
+  <div id="sec-dashboard" class="section active">
+    <div id="dash-content">
+      <div class="metrics-grid-5" id="metrics-grid">
+        <div class="metric-card accent-purple">
+          <div class="metric-label">Saldo cuenta</div>
+          <div class="metric-value c-purple" id="m-balance">$0.00</div>
+          <div class="metric-sub" id="m-balance-sub">capital + P&L</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Total trades</div>
+          <div class="metric-value c-muted" id="m-total">0</div>
+          <div class="metric-sub" id="m-period">sin registros</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Win Rate</div>
+          <div class="metric-value c-muted" id="m-wr">—</div>
+          <div class="metric-sub" id="m-wl">0W / 0L</div>
+        </div>
+        <div class="metric-card accent-green">
+          <div class="metric-label">P&amp;L Neto (trades)</div>
+          <div class="metric-value c-muted" id="m-pnl">$0.00</div>
+          <div class="metric-sub" id="m-pct-total">solo ganancias/pérdidas</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Mejor trade</div>
+          <div class="metric-value c-green" id="m-best">—</div>
+          <div class="metric-sub" id="m-worst-label">Peor: —</div>
+        </div>
+      </div>
+
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="chart-title">Curva de equity (rendimiento trading)</div>
+          <div class="chart-wrap">
+            <canvas id="equityChart" role="img" aria-label="Curva de equity acumulada solo de trades, sin movimientos de capital"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">P&amp;L por símbolo</div>
+          <div class="chart-wrap">
+            <canvas id="symbolChart" role="img" aria-label="P&L agrupado por símbolo"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-card" style="margin-bottom:16px">
+        <div class="chart-title">Últimos 10 trades</div>
+        <div id="recent-wrap"></div>
+      </div>
+    </div>
+    <div class="empty-dash" id="empty-dash" style="display:none">
+      <span class="icon">◈</span>
+      REGISTRA TU PRIMER TRADE<br>
+      <span style="font-size:11px;margin-top:8px;display:block;opacity:.6">para activar el dashboard</span>
+    </div>
+  </div>
+
+  <!-- NUEVO TRADE -->
+  <div id="sec-nuevo" class="section">
+    <div class="form-card">
+      <div class="form-title">Registrar trade</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Símbolo</label>
+          <select id="f-symbol">
+            <option>Boom 500</option><option>Boom 600</option><option>Boom 900</option><option>Boom 1000</option>
+            <option>Crash 500</option><option>Crash 600</option><option>Crash 900</option><option>Crash 1000</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Fecha</label>
+          <input type="date" id="f-date">
+        </div>
+        <div class="form-group">
+          <label>Dirección</label>
+          <select id="f-dir">
+            <option value="buy">Buy</option><option value="sell">Sell</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Resultado</label>
+          <select id="f-result">
+            <option value="win">Win ✓</option><option value="loss">Loss ✗</option><option value="be">Breakeven ≈</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>P&amp;L ($)</label>
+          <input type="number" id="f-pnl" placeholder="ej: 15.50 o -8.00" step="0.01" oninput="calcPct()">
+        </div>
+        <div class="form-group">
+          <label>P&amp;L (%) <span style="font-size:10px;color:var(--text3);text-transform:none;letter-spacing:0;font-family:var(--sans)">auto</span></label>
+          <input type="text" id="f-pct" readonly placeholder="—" style="color:var(--text2);cursor:default;background:var(--bg3)">
+        </div>
+        <div class="form-group full">
+          <label>Setup / Estrategia</label>
+          <input type="text" id="f-setup" placeholder="ej: Spike entry en Boom 500, confirmación en M1...">
+        </div>
+        <div class="form-group full">
+          <label>Notas</label>
+          <textarea id="f-notes" placeholder="Contexto de mercado, emociones, errores, aprendizajes..."></textarea>
+        </div>
+        <div class="form-group full">
+          <label>Screenshot (opcional)</label>
+          <div id="paste-zone" tabindex="0"
+            style="background:var(--bg2);border:1.5px dashed var(--border2);border-radius:var(--radius);
+                   padding:16px;cursor:pointer;text-align:center;transition:border-color .2s;position:relative;min-height:80px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;"
+            onclick="document.getElementById('f-img').click()"
+            onpaste="handlePaste(event)"
+            onkeydown="if(event.key==='v'&&(event.ctrlKey||event.metaKey))handlePaste(event)"
+            ondragover="event.preventDefault();this.style.borderColor='var(--green)'"
+            ondragleave="this.style.borderColor='var(--border2)'"
+            ondrop="handleDrop(event)">
+            <span id="paste-hint" style="font-size:12px;color:var(--text3);font-family:var(--mono);letter-spacing:.04em;pointer-events:none">
+              PEGAR (Ctrl+V) · ARRASTRAR · O CLICK PARA SUBIR
+            </span>
+            <img id="paste-preview" src="" alt="preview"
+              style="display:none;max-height:160px;max-width:100%;border-radius:6px;object-fit:contain">
+            <button id="paste-clear" onclick="clearImg(event)"
+              style="display:none;position:absolute;top:8px;right:8px;background:var(--surface2);
+                     border:1px solid var(--border2);border-radius:6px;color:var(--text2);
+                     cursor:pointer;padding:3px 10px;font-size:12px;z-index:2">✕ quitar</button>
+          </div>
+          <input type="file" id="f-img" accept="image/*" style="display:none" onchange="handleFileInput(this)">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-save" onclick="saveTrade()">Guardar trade</button>
+        <button class="btn-clear" onclick="clearForm()">Limpiar</button>
+        <span class="form-success" id="form-msg">✓ Guardado</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CAPITAL -->
+  <div id="sec-capital" class="section">
+    <div class="sub-tabs">
+      <button class="sub-tab active" onclick="switchSubTab('cap-registro', this)">Registrar movimiento</button>
+      <button class="sub-tab" onclick="switchSubTab('cap-historial', this)">Historial de capital</button>
+    </div>
+
+    <div id="cap-registro">
+      <div class="capital-layout">
+        <div>
+          <p class="cap-info">
+            Registra aquí tus <strong style="color:var(--green)">depósitos</strong> y <strong style="color:var(--purple)">retiros</strong> de capital.<br><br>
+            Estos movimientos <strong>no se contabilizan</strong> como ganancias ni pérdidas de trading. Solo afectan el saldo total de tu cuenta.
+          </p>
+          <div class="cap-note">
+            Saldo cuenta = Capital neto + P&L trades<br>
+            La curva de equity solo refleja el rendimiento de tus trades.
+          </div>
+          <!-- resumen capital inline -->
+          <div style="margin-top:20px;display:flex;flex-direction:column;gap:10px">
+            <div class="metric-card">
+              <div class="metric-label">Capital neto depositado</div>
+              <div class="metric-value c-muted" id="cap-neto">$0.00</div>
+              <div class="metric-sub" id="cap-neto-sub">depósitos − retiros</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Total depósitos</div>
+              <div class="metric-value c-green" id="cap-dep">$0.00</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Total retiros</div>
+              <div class="metric-value c-purple" id="cap-ret">$0.00</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-card" style="max-width:100%">
+          <div class="form-title">Nuevo movimiento de capital</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Tipo</label>
+              <select id="c-type">
+                <option value="deposito">Depósito ↓</option>
+                <option value="retiro">Retiro ↑</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Fecha</label>
+              <input type="date" id="c-date">
+            </div>
+            <div class="form-group full">
+              <label>Monto ($)</label>
+              <input type="number" id="c-amount" placeholder="ej: 500.00" step="0.01" min="0">
+            </div>
+            <div class="form-group full">
+              <label>Descripción (opcional)</label>
+              <input type="text" id="c-desc" placeholder="ej: Depósito inicial, retiro de ganancias...">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn-save purple" onclick="saveCapital()">Guardar movimiento</button>
+            <button class="btn-clear" onclick="clearCapForm()">Limpiar</button>
+            <span class="form-success purple" id="cap-msg">✓ Guardado</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="cap-historial" style="display:none">
+      <div class="table-wrap" id="cap-history-wrap"></div>
+    </div>
+  </div>
+
+  <!-- HISTORIAL TRADES -->
+  <div id="sec-historial" class="section">
+    <div class="filter-bar">
+      <select id="fil-symbol" onchange="renderHistory()">
+        <option value="">Todos los símbolos</option>
+        <option>Boom 500</option><option>Boom 600</option><option>Boom 900</option><option>Boom 1000</option>
+        <option>Crash 500</option><option>Crash 600</option><option>Crash 900</option><option>Crash 1000</option>
+      </select>
+      <select id="fil-result" onchange="renderHistory()">
+        <option value="">Todos los resultados</option>
+        <option value="win">Wins</option><option value="loss">Losses</option><option value="be">Breakeven</option>
+      </select>
+      <select id="fil-dir" onchange="renderHistory()">
+        <option value="">Buy y Sell</option>
+        <option value="buy">Solo Buy</option><option value="sell">Solo Sell</option>
+      </select>
+      <select id="fil-sort" onchange="renderHistory()">
+        <option value="newest">Más recientes primero</option>
+        <option value="oldest">Más antiguos primero</option>
+        <option value="best">Mayor P&amp;L</option>
+        <option value="worst">Menor P&amp;L</option>
+      </select>
+    </div>
+    <div id="hist-stats" class="hist-stats" style="margin-bottom:12px"></div>
+    <div class="table-wrap" id="history-wrap"></div>
+  </div>
+
+</main>
+
+<!-- Modal imagen -->
+<div class="modal-overlay" id="img-modal" onclick="closeModal(event)">
+  <div class="modal-inner">
+    <button class="modal-close" onclick="document.getElementById('img-modal').classList.remove('open')">✕</button>
+    <img id="modal-img" src="" alt="Screenshot del trade">
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ── SUPABASE ───────────────────────────────────────────
+const SUPA_URL = 'https://iryqcdotjkjheuvxepcj.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlyeXFjZG90amtqaGV1dnhlcGNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyOTU1MDMsImV4cCI6MjA5NDg3MTUwM30.PrcPmYRCPLu2Ydjdk4kivw647CH-AKoEm8iQAcEz12Q';
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// ── STATE ──────────────────────────────────────────────
+let trades   = [];
+let capitals = [];
+let equityChart = null, symbolChart = null;
+
+// ── HELPERS ────────────────────────────────────────────
+function today() { return new Date().toISOString().split('T')[0]; }
+
+function showToast(msg, error = false) {
+  let t = document.getElementById('toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = 'position:fixed;bottom:28px;right:28px;z-index:9999;padding:10px 20px;border-radius:10px;font-family:Space Mono,monospace;font-size:12px;letter-spacing:.04em;transition:opacity .3s;pointer-events:none';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.background = error ? 'rgba(255,92,92,0.15)' : 'rgba(0,214,143,0.15)';
+  t.style.border = error ? '1px solid rgba(255,92,92,0.4)' : '1px solid rgba(0,214,143,0.4)';
+  t.style.color = error ? '#ff5c5c' : '#00d68f';
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.style.opacity = '0', 2500);
+}
+
+function setLoading(on) {
+  let el = document.getElementById('loading-bar');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'loading-bar';
+    el.style.cssText = 'position:fixed;top:0;left:0;height:2px;background:var(--green);transition:width .3s;z-index:9999;pointer-events:none';
+    document.body.appendChild(el);
+  }
+  el.style.width = on ? '70%' : '100%';
+  if (!on) setTimeout(() => { el.style.width = '0'; }, 300);
+}
+
+// ── DB HELPERS ─────────────────────────────────────────
+async function loadAll() {
+  setLoading(true);
+  const [tr, ca] = await Promise.all([
+    supa.from('trades').select('*').order('id', {ascending: false}),
+    supa.from('capitals').select('*').order('id', {ascending: false})
+  ]);
+  if (tr.error) { showToast('Error cargando trades: ' + tr.error.message, true); }
+  else { trades = tr.data || []; }
+  if (ca.error) { showToast('Error cargando capital: ' + ca.error.message, true); }
+  else { capitals = ca.data || []; }
+  setLoading(false);
+}
+
+// ── GLOBAL PASTE ──────────────────────────────────────
+document.addEventListener('paste', function(e) {
+  const active = document.activeElement;
+  const isInput = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT');
+  if (isInput && active.id !== 'paste-zone') return;
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      e.preventDefault();
+      const reader = new FileReader();
+      reader.onload = ev => setImgPreview(ev.target.result);
+      reader.readAsDataURL(item.getAsFile());
+      return;
+    }
+  }
+});
+
+// ── AUTH ───────────────────────────────────────────────
+const loginScreen = document.getElementById('login-screen');
+const appBody     = document.querySelector('.topbar, .main');
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const btn   = document.getElementById('login-btn');
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  btn.disabled = true; btn.textContent = 'Ingresando...';
+  const { error } = await supa.auth.signInWithPassword({ email, password: pass });
+  btn.disabled = false; btn.textContent = 'Ingresar';
+  if (error) {
+    errEl.textContent = 'Email o contraseña incorrectos';
+    errEl.style.display = 'block';
+  }
+}
+
+async function doLogout() {
+  await supa.auth.signOut();
+}
+
+supa.auth.onAuthStateChange((event, session) => {
+  if (session) {
+    loginScreen.style.display = 'none';
+    document.querySelector('.topbar').style.display = '';
+    document.querySelector('.main').style.display = '';
+    document.getElementById('f-date').value = today();
+    document.getElementById('c-date').value = today();
+    loadAll().then(() => { renderDashboard(); updateCapMetrics(); });
+  } else {
+    loginScreen.style.display = 'flex';
+    document.querySelector('.topbar').style.display = 'none';
+    document.querySelector('.main').style.display = 'none';
+  }
+});
+
+// ── INIT ───────────────────────────────────────────────
+// Auth state change handles init
+
+// ── TABS ───────────────────────────────────────────────
+function switchTab(id, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'dashboard') { loadAll().then(() => { renderDashboard(); updateCapMetrics(); }); }
+  if (id === 'historial') { loadAll().then(() => renderHistory()); }
+  if (id === 'capital')   { loadAll().then(() => { updateCapMetrics(); renderCapHistory(); }); }
+}
+
+function switchSubTab(id, btn) {
+  document.querySelectorAll('.sub-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('cap-registro').style.display  = id === 'cap-registro'  ? 'block' : 'none';
+  document.getElementById('cap-historial').style.display = id === 'cap-historial' ? 'block' : 'none';
+  if (id === 'cap-historial') renderCapHistory();
+}
+
+// ── CALC PCT ──────────────────────────────────────────
+function calcPct() {
+  const pnl = parseFloat(document.getElementById('f-pnl').value);
+  const el  = document.getElementById('f-pct');
+  if (isNaN(pnl) || pnl === 0) { el.value = ''; el.dataset.raw = '0'; return; }
+
+  // Saldo actual = capital neto + P&L acumulado de trades ya guardados
+  const deps    = capitals.filter(c => c.type === 'deposito').reduce((a, c) => a + c.amount, 0);
+  const rets    = capitals.filter(c => c.type === 'retiro').reduce((a,   c) => a + c.amount, 0);
+  const capNeto = deps - rets;
+  const tradePnl = trades.reduce((a, t) => a + t.pnl, 0);
+  const balance  = capNeto + tradePnl;
+
+  if (balance <= 0) { el.value = 'sin saldo registrado'; el.dataset.raw = '0'; return; }
+
+  const pct = (pnl / balance) * 100;
+  el.dataset.raw = pct.toFixed(4);
+  el.value = (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%';
+}
+
+// ── IMAGE STORE ────────────────────────────────────────
+let imgDataStore = null;
+
+function setImgPreview(dataUrl) {
+  imgDataStore = dataUrl;
+  const preview = document.getElementById('paste-preview');
+  const hint    = document.getElementById('paste-hint');
+  const clrBtn  = document.getElementById('paste-clear');
+  preview.src   = dataUrl;
+  preview.style.display = 'block';
+  hint.style.display    = 'none';
+  clrBtn.style.display  = 'block';
+  document.getElementById('paste-zone').style.borderColor = 'var(--green)';
+}
+
+function clearImg(e) {
+  if (e) e.stopPropagation();
+  imgDataStore = null;
+  document.getElementById('paste-preview').style.display = 'none';
+  document.getElementById('paste-preview').src = '';
+  document.getElementById('paste-hint').style.display   = 'block';
+  document.getElementById('paste-clear').style.display  = 'none';
+  document.getElementById('paste-zone').style.borderColor = 'var(--border2)';
+  document.getElementById('f-img').value = '';
+}
+
+function handlePaste(e) {
+  const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      e.preventDefault();
+      const reader = new FileReader();
+      reader.onload = ev => setImgPreview(ev.target.result);
+      reader.readAsDataURL(item.getAsFile());
+      return;
+    }
+  }
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('paste-zone').style.borderColor = 'var(--border2)';
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) {
+    const reader = new FileReader();
+    reader.onload = ev => setImgPreview(ev.target.result);
+    reader.readAsDataURL(file);
+  }
+}
+
+function handleFileInput(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => setImgPreview(ev.target.result);
+  reader.readAsDataURL(file);
+}
+
+// ── SAVE TRADE ─────────────────────────────────────────
+async function saveTrade() {
+  const btn = document.querySelector('#sec-nuevo .btn-save');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  const { data: { user } } = await supa.auth.getUser();
+  const trade = {
+    id: Date.now(),
+    user_id: user.id,
+    date: document.getElementById('f-date').value,
+    symbol: document.getElementById('f-symbol').value,
+    dir: document.getElementById('f-dir').value,
+    result: document.getElementById('f-result').value,
+    pnl: parseFloat(document.getElementById('f-pnl').value) || 0,
+    pct: parseFloat(document.getElementById('f-pct').dataset.raw) || 0,
+    setup: document.getElementById('f-setup').value.trim(),
+    notes: document.getElementById('f-notes').value.trim(),
+    img: imgDataStore || null
+  };
+  const { error } = await supa.from('trades').insert([trade]);
+  btn.disabled = false; btn.textContent = 'Guardar trade';
+  if (error) { showToast('Error al guardar: ' + error.message, true); return; }
+  trades.unshift(trade);
+  clearForm();
+  showToast('✓ Trade guardado');
+  renderDashboard();
+}
+
+function clearForm() {
+  ['f-pnl','f-setup','f-notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-pct').value = '';
+  document.getElementById('f-date').value = today();
+  clearImg();
+}
+
+async function deleteTrade(id) {
+  if (!confirm('¿Eliminar este trade?')) return;
+  const { error } = await supa.from('trades').delete().eq('id', id);
+  if (error) { showToast('Error al eliminar: ' + error.message, true); return; }
+  trades = trades.filter(t => t.id !== id);
+  showToast('Trade eliminado');
+  renderHistory(); renderDashboard();
+}
+
+// ── SAVE CAPITAL ───────────────────────────────────────
+async function saveCapital() {
+  const amount = parseFloat(document.getElementById('c-amount').value);
+  if (!amount || amount <= 0) { alert('Ingresa un monto válido mayor a 0.'); return; }
+  const btn = document.querySelector('#sec-capital .btn-save');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  const { data: { user: capUser } } = await supa.auth.getUser();
+  const cap = {
+    id: Date.now(),
+    user_id: capUser.id,
+    date: document.getElementById('c-date').value,
+    type: document.getElementById('c-type').value,
+    amount,
+    desc: document.getElementById('c-desc').value.trim()
+  };
+  const { error } = await supa.from('capitals').insert([cap]);
+  btn.disabled = false; btn.textContent = 'Guardar movimiento';
+  if (error) { showToast('Error al guardar: ' + error.message, true); return; }
+  capitals.unshift(cap);
+  clearCapForm();
+  updateCapMetrics();
+  showToast('✓ Movimiento guardado', false);
+}
+
+function clearCapForm() {
+  document.getElementById('c-amount').value = '';
+  document.getElementById('c-desc').value = '';
+  document.getElementById('c-date').value = today();
+}
+
+async function deleteCapital(id) {
+  if (!confirm('¿Eliminar este movimiento de capital?')) return;
+  const { error } = await supa.from('capitals').delete().eq('id', id);
+  if (error) { showToast('Error al eliminar: ' + error.message, true); return; }
+  capitals = capitals.filter(c => c.id !== id);
+  showToast('Movimiento eliminado');
+  updateCapMetrics(); renderCapHistory(); renderDashboard();
+}
+
+// flash replaced by showToast
+
+// ── CAPITAL METRICS ────────────────────────────────────
+function updateCapMetrics() {
+  const deps = capitals.filter(c => c.type === 'deposito').reduce((a, c) => a + c.amount, 0);
+  const rets = capitals.filter(c => c.type === 'retiro').reduce((a, c) => a + c.amount, 0);
+  const neto = deps - rets;
+  document.getElementById('cap-dep').textContent  = '$' + deps.toFixed(2);
+  document.getElementById('cap-ret').textContent  = '$' + rets.toFixed(2);
+  document.getElementById('cap-neto').textContent = (neto >= 0 ? '' : '-') + '$' + Math.abs(neto).toFixed(2);
+}
+
+// ── CAPITAL HISTORY ────────────────────────────────────
+function renderCapHistory() {
+  const wrap = document.getElementById('cap-history-wrap');
+  if (capitals.length === 0) {
+    wrap.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3);font-family:var(--mono);font-size:12px">SIN MOVIMIENTOS REGISTRADOS</div>';
+    return;
+  }
+  const rows = capitals.map(c => {
+    const sign = c.type === 'deposito' ? '+' : '-';
+    const cls  = c.type === 'deposito' ? 'pnl-pos' : 'pnl-neg';
+    return `<tr>
+      <td class="date-cell">${c.date}</td>
+      <td><span class="badge badge-${c.type === 'deposito' ? 'dep' : 'ret'}">${c.type === 'deposito' ? 'Depósito' : 'Retiro'}</span></td>
+      <td class="${cls}">${sign}$${c.amount.toFixed(2)}</td>
+      <td class="setup-cell">${c.desc || '—'}</td>
+      <td><button class="del-btn" onclick="deleteCapital(${c.id})">✕</button></td>
+    </tr>`;
+  }).join('');
+  wrap.innerHTML = `<table class="trade-table">
+    <thead><tr><th>Fecha</th><th>Tipo</th><th>Monto</th><th>Descripción</th><th></th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+// ── DASHBOARD ──────────────────────────────────────────
+function renderDashboard() {
+  const n = trades.length;
+  const dashContent = document.getElementById('dash-content');
+  const emptyDash   = document.getElementById('empty-dash');
+
+  // Saldo siempre visible aunque no haya trades
+  const deps    = capitals.filter(c => c.type === 'deposito').reduce((a, c) => a + c.amount, 0);
+  const rets    = capitals.filter(c => c.type === 'retiro').reduce((a, c)   => a + c.amount, 0);
+  const capNeto = deps - rets;
+  const tradePnl = trades.reduce((a, t) => a + t.pnl, 0);
+  const balance = capNeto + tradePnl;
+  document.getElementById('m-balance').textContent = (balance >= 0 ? '' : '-') + '$' + Math.abs(balance).toFixed(2);
+  document.getElementById('m-balance-sub').textContent = '$' + capNeto.toFixed(2) + ' cap · ' + (tradePnl >= 0 ? '+' : '') + '$' + tradePnl.toFixed(2) + ' trades';
+
+  if (n === 0) {
+    dashContent.style.display = 'none';
+    emptyDash.style.display   = 'block';
+    return;
+  }
+  dashContent.style.display = 'block';
+  emptyDash.style.display   = 'none';
+
+  const wins   = trades.filter(t => t.result === 'win').length;
+  const losses = trades.filter(t => t.result === 'loss').length;
+  const totalPnl = trades.reduce((a, t) => a + t.pnl, 0);
+  const totalPct = trades.reduce((a, t) => a + t.pct, 0);
+  const best   = Math.max(...trades.map(t => t.pnl));
+  const worst  = Math.min(...trades.map(t => t.pnl));
+  const wr     = Math.round(wins / n * 100);
+
+  document.getElementById('m-total').textContent   = n;
+  document.getElementById('m-period').textContent  = n + ' trade' + (n !== 1 ? 's' : '') + ' registrado' + (n !== 1 ? 's' : '');
+  document.getElementById('m-wr').textContent      = wr + '%';
+  document.getElementById('m-wr').className        = 'metric-value ' + (wr >= 50 ? 'c-green' : 'c-red');
+  document.getElementById('m-wl').textContent      = wins + 'W / ' + losses + 'L';
+  document.getElementById('m-pnl').textContent     = (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(2);
+  document.getElementById('m-pnl').className       = 'metric-value ' + (totalPnl > 0 ? 'c-green' : totalPnl < 0 ? 'c-red' : 'c-muted');
+  document.getElementById('m-pct-total').textContent = (totalPct >= 0 ? '+' : '') + totalPct.toFixed(2) + '% acumulado';
+  document.getElementById('m-best').textContent    = '$' + best.toFixed(2);
+  document.getElementById('m-worst-label').textContent = 'Peor: $' + worst.toFixed(2);
+
+  // Equity chart — SOLO trades, sin movimientos de capital
+  const sorted = [...trades].sort((a, b) => a.date.localeCompare(b.date));
+  let cum = 0;
+  const eqLabels = sorted.map(t => t.date.slice(5));
+  const eqData   = sorted.map(t => { cum += t.pnl; return parseFloat(cum.toFixed(2)); });
+  const eqColors = eqData.map(v => v >= 0 ? '#00d68f' : '#ff5c5c');
+  const lastEq   = eqData[eqData.length - 1];
+
+  if (equityChart) equityChart.destroy();
+  equityChart = new Chart(document.getElementById('equityChart'), {
+    type: 'line',
+    data: {
+      labels: eqLabels,
+      datasets: [{
+        label: 'P&L acumulado', data: eqData,
+        borderColor: lastEq >= 0 ? '#00d68f' : '#ff5c5c',
+        backgroundColor: lastEq >= 0 ? 'rgba(0,214,143,0.08)' : 'rgba(255,92,92,0.08)',
+        pointRadius: eqData.length <= 20 ? 4 : 2,
+        pointBackgroundColor: eqColors,
+        fill: true, tension: 0.35, borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: {
+        backgroundColor: '#1e2432', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1,
+        titleColor: '#8a93a8', bodyColor: '#e8ecf4', bodyFont: { family: 'Space Mono' },
+        callbacks: { label: ctx => ' $' + ctx.parsed.y.toFixed(2) }
+      }},
+      scales: {
+        x: { ticks: { color: '#4e5669', font: { family: 'Space Mono', size: 10 }, maxRotation: 45, autoSkip: true }, grid: { color: 'rgba(255,255,255,0.04)' }, border: { color: 'rgba(255,255,255,0.07)' } },
+        y: { ticks: { color: '#4e5669', font: { family: 'Space Mono', size: 10 }, callback: v => '$' + v }, grid: { color: 'rgba(255,255,255,0.04)' }, border: { color: 'rgba(255,255,255,0.07)' } }
+      }
+    }
+  });
+
+  // Symbol chart
+  const symMap = {};
+  trades.forEach(t => { symMap[t.symbol] = (symMap[t.symbol] || 0) + t.pnl; });
+  const symLabels = Object.keys(symMap);
+  const symData   = symLabels.map(s => parseFloat(symMap[s].toFixed(2)));
+
+  if (symbolChart) symbolChart.destroy();
+  symbolChart = new Chart(document.getElementById('symbolChart'), {
+    type: 'bar',
+    data: {
+      labels: symLabels,
+      datasets: [{ label: 'P&L', data: symData,
+        backgroundColor: symData.map(v => v >= 0 ? 'rgba(0,214,143,0.15)' : 'rgba(255,92,92,0.15)'),
+        borderColor: symData.map(v => v >= 0 ? '#00d68f' : '#ff5c5c'),
+        borderWidth: 1, borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: {
+        backgroundColor: '#1e2432', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1,
+        titleColor: '#8a93a8', bodyColor: '#e8ecf4', bodyFont: { family: 'Space Mono' },
+        callbacks: { label: ctx => ' $' + ctx.parsed.y.toFixed(2) }
+      }},
+      scales: {
+        x: { ticks: { color: '#4e5669', font: { family: 'Space Mono', size: 10 } }, grid: { display: false }, border: { color: 'rgba(255,255,255,0.07)' } },
+        y: { ticks: { color: '#4e5669', font: { family: 'Space Mono', size: 10 }, callback: v => '$' + v }, grid: { color: 'rgba(255,255,255,0.04)' }, border: { color: 'rgba(255,255,255,0.07)' } }
+      }
+    }
+  });
+
+  // Recent trades
+  const recent = [...trades].slice(0, 10);
+  document.getElementById('recent-wrap').innerHTML = `<table class="recent-table">
+    <thead><tr><th>Fecha</th><th>Símbolo</th><th>Dir</th><th>Resultado</th><th>P&L $</th><th>Setup</th></tr></thead>
+    <tbody>${recent.map(t => `<tr>
+      <td class="date-cell">${t.date}</td>
+      <td class="sym-cell">${t.symbol}</td>
+      <td><span class="badge badge-${t.dir}">${t.dir.toUpperCase()}</span></td>
+      <td><span class="badge badge-${t.result}">${t.result === 'be' ? 'BE' : t.result.toUpperCase()}</span></td>
+      <td class="${t.pnl > 0 ? 'pnl-pos' : t.pnl < 0 ? 'pnl-neg' : 'pnl-zero'}">${(t.pnl >= 0 ? '+' : '')}$${t.pnl.toFixed(2)}</td>
+      <td class="setup-cell">${t.setup || t.notes || '—'}</td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+// ── HISTORY ────────────────────────────────────────────
+function renderHistory() {
+  const filSym  = document.getElementById('fil-symbol').value;
+  const filRes  = document.getElementById('fil-result').value;
+  const filDir  = document.getElementById('fil-dir').value;
+  const filSort = document.getElementById('fil-sort').value;
+
+  let filtered = trades.filter(t =>
+    (!filSym || t.symbol === filSym) &&
+    (!filRes  || t.result === filRes) &&
+    (!filDir  || t.dir    === filDir)
+  );
+  if (filSort === 'oldest') filtered.sort((a, b) => a.date.localeCompare(b.date));
+  else if (filSort === 'best')  filtered.sort((a, b) => b.pnl - a.pnl);
+  else if (filSort === 'worst') filtered.sort((a, b) => a.pnl - b.pnl);
+
+  const wrap    = document.getElementById('history-wrap');
+  const statsEl = document.getElementById('hist-stats');
+
+  if (filtered.length === 0) {
+    statsEl.textContent = '';
+    wrap.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3);font-family:var(--mono);font-size:12px">SIN TRADES QUE MOSTRAR</div>';
+    return;
+  }
+
+  const filtPnl  = filtered.reduce((a, t) => a + t.pnl, 0);
+  const filtWins = filtered.filter(t => t.result === 'win').length;
+  statsEl.textContent = `${filtered.length} trades · WR ${Math.round(filtWins / filtered.length * 100)}% · P&L ${filtPnl >= 0 ? '+' : ''}$${filtPnl.toFixed(2)}`;
+
+  const rows = filtered.map(t => {
+    const pnlClass = t.pnl > 0 ? 'pnl-pos' : t.pnl < 0 ? 'pnl-neg' : 'pnl-zero';
+    const imgCell  = t.img
+      ? `<button class="thumb-btn" onclick="openImg(${t.id})" title="Ver screenshot"><img src="${t.img}" alt="screenshot"></button>`
+      : `<span class="no-img">—</span>`;
+    const noteTitle = t.notes ? `title="${t.notes.replace(/"/g, '&quot;')}"` : '';
+    return `<tr>
+      <td class="date-cell">${t.date}</td>
+      <td class="sym-cell">${t.symbol}</td>
+      <td><span class="badge badge-${t.dir}">${t.dir.toUpperCase()}</span></td>
+      <td><span class="badge badge-${t.result}">${t.result === 'be' ? 'BE' : t.result.toUpperCase()}</span></td>
+      <td class="${pnlClass}">${(t.pnl >= 0 ? '+' : '')}$${t.pnl.toFixed(2)}</td>
+      <td class="${pnlClass}" style="font-size:12px">${(t.pct >= 0 ? '+' : '')}${t.pct.toFixed(2)}%</td>
+      <td class="setup-cell" ${noteTitle}>${t.setup || '—'}</td>
+      <td>${imgCell}</td>
+      <td><button class="del-btn" onclick="deleteTrade(${t.id})">✕</button></td>
+    </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `<table class="trade-table">
+    <thead><tr>
+      <th>Fecha</th><th>Símbolo</th><th>Dir</th><th>Resultado</th>
+      <th>P&L $</th><th>P&L %</th><th>Setup</th><th>Shot</th><th></th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+// ── IMAGE MODAL ────────────────────────────────────────
+function openImg(id) {
+  const t = trades.find(x => x.id === id);
+  if (!t || !t.img) return;
+  document.getElementById('modal-img').src = t.img;
+  document.getElementById('img-modal').classList.add('open');
+}
+function closeModal(e) {
+  if (e.target === document.getElementById('img-modal'))
+    document.getElementById('img-modal').classList.remove('open');
+}
+
+// ── EXPORT CSV ─────────────────────────────────────────
+function exportCSV() {
+  const tHdr  = 'Tipo,ID,Fecha,Símbolo,Dirección,Resultado,P&L $,P&L %,Setup,Notas';
+  const tRows = trades.map(t =>
+    ['TRADE', t.id, t.date, t.symbol, t.dir, t.result,
+     t.pnl.toFixed(2), t.pct.toFixed(2),
+     '"' + (t.setup || '').replace(/"/g, '""') + '"',
+     '"' + (t.notes || '').replace(/"/g, '""') + '"'
+    ].join(',')
+  );
+  const cRows = capitals.map(c =>
+    ['CAPITAL', c.id, c.date, c.type === 'deposito' ? 'Depósito' : 'Retiro',
+     '', '', (c.type === 'deposito' ? '+' : '-') + c.amount.toFixed(2),
+     '', '', '"' + (c.desc || '').replace(/"/g, '""') + '"'
+    ].join(',')
+  );
+  if (tRows.length === 0 && cRows.length === 0) { alert('No hay datos para exportar.'); return; }
+  const blob = new Blob([[tHdr, ...tRows, ...cRows].join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'boom_crash_journal_' + today() + '.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+</script>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:10000;display:flex;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:40px 36px;width:100%;max-width:380px;display:flex;flex-direction:column;gap:0">
+    <div style="font-family:var(--mono);font-size:18px;font-weight:700;margin-bottom:6px">B<span style="color:var(--green)">&</span>C JOURNAL</div>
+    <div style="font-family:var(--mono);font-size:11px;color:var(--text3);letter-spacing:.08em;margin-bottom:32px">BOOM & CRASH TRADING LOG</div>
+
+    <label style="font-size:11px;font-family:var(--mono);letter-spacing:.08em;color:var(--text3);text-transform:uppercase;margin-bottom:6px">Email</label>
+    <input type="email" id="login-email" placeholder="tu@email.com"
+      style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--sans);font-size:14px;padding:10px 14px;outline:none;margin-bottom:16px;width:100%"
+      onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()">
+
+    <label style="font-size:11px;font-family:var(--mono);letter-spacing:.08em;color:var(--text3);text-transform:uppercase;margin-bottom:6px">Contraseña</label>
+    <input type="password" id="login-pass" placeholder="••••••••"
+      style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--sans);font-size:14px;padding:10px 14px;outline:none;margin-bottom:24px;width:100%"
+      onkeydown="if(event.key==='Enter')doLogin()">
+
+    <button onclick="doLogin()" id="login-btn"
+      style="background:var(--green);color:#000;border:none;border-radius:var(--radius);padding:11px;font-size:14px;font-weight:600;font-family:var(--sans);cursor:pointer;transition:opacity .15s;width:100%">
+      Ingresar
+    </button>
+    <div id="login-error" style="display:none;margin-top:14px;font-family:var(--mono);font-size:11px;color:var(--red);text-align:center;letter-spacing:.04em"></div>
+  </div>
+</div>
+
+</body>
+</html>
