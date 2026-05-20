@@ -744,7 +744,7 @@ async function saveCapital() {
     date: document.getElementById('c-date').value,
     type: document.getElementById('c-type').value,
     amount,
-    desc: document.getElementById('c-desc').value.trim()
+    description: document.getElementById('c-desc').value.trim()
   };
   const { error } = await supa.from('capitals').insert([cap]);
   btn.disabled = false; btn.textContent = 'Guardar movimiento';
@@ -796,7 +796,7 @@ function renderCapHistory() {
       <td class="date-cell">${c.date}</td>
       <td><span class="badge badge-${c.type === 'deposito' ? 'dep' : 'ret'}">${c.type === 'deposito' ? 'Depósito' : 'Retiro'}</span></td>
       <td class="${cls}">${sign}$${c.amount.toFixed(2)}</td>
-      <td class="setup-cell">${c.desc || '—'}</td>
+      <td class="setup-cell">${c.description || '—'}</td>
       <td><button class="del-btn" onclick="deleteCapital(${c.id})">✕</button></td>
     </tr>`;
   }).join('');
@@ -1012,7 +1012,7 @@ function exportCSV() {
   const cRows = capitals.map(c =>
     ['CAPITAL', c.id, c.date, c.type === 'deposito' ? 'Depósito' : 'Retiro',
      '', '', (c.type === 'deposito' ? '+' : '-') + c.amount.toFixed(2),
-     '', '', '"' + (c.desc || '').replace(/"/g, '""') + '"'
+     '', '', '"' + (c.description || '').replace(/"/g, '""') + '"'
     ].join(',')
   );
   if (tRows.length === 0 && cRows.length === 0) { alert('No hay datos para exportar.'); return; }
