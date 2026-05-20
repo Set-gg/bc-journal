@@ -185,6 +185,41 @@ body { min-height: 100vh; display: flex; flex-direction: column; }
   .topbar { padding: 14px 16px; }
   .capital-layout { grid-template-columns: 1fr; }
 }
+
+/* UX 2: Responsive table — card layout on mobile */
+@media (max-width: 640px) {
+  .nav-btn { padding: 6px 10px; font-size: 12px; }
+  .trade-table thead { display: none; }
+  .trade-table tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 12px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  .trade-table tr:last-child { border-bottom: none; }
+  .trade-table td {
+    padding: 2px 0;
+    border-bottom: none;
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .trade-table td::before {
+    content: attr(data-label);
+    font-size: 10px;
+    font-family: var(--mono);
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+  }
+  .trade-table td:last-child { position: absolute; top: 12px; right: 14px; }
+  .trade-table td:last-child::before { display: none; }
+  .setup-cell { max-width: 100%; white-space: normal; }
+  .note-expand { display: block; margin-top: 4px; font-size: 12px; color: var(--text2); }
+}
 </style>
 </head>
 <body>
@@ -441,12 +476,53 @@ body { min-height: 100vh; display: flex; flex-direction: column; }
         <option value="best">Mayor P&amp;L</option>
         <option value="worst">Menor P&amp;L</option>
       </select>
+      <!-- UX 4: date range filter -->
+      <input type="date" id="fil-from" onchange="renderHistory()"
+        style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text2);font-family:var(--sans);font-size:13px;padding:8px 14px;outline:none;min-width:130px"
+        title="Desde">
+      <input type="date" id="fil-to" onchange="renderHistory()"
+        style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text2);font-family:var(--sans);font-size:13px;padding:8px 14px;outline:none;min-width:130px"
+        title="Hasta">
+      <button onclick="clearDateFilter()" style="padding:8px 12px;border-radius:var(--radius);font-size:12px;cursor:pointer;border:1px solid var(--border);background:none;color:var(--text3);font-family:var(--mono)" title="Limpiar fechas">✕ fechas</button>
     </div>
     <div id="hist-stats" class="hist-stats" style="margin-bottom:12px"></div>
     <div class="table-wrap" id="history-wrap"></div>
   </div>
 
 </main>
+
+<!-- Modal editar trade — UX 3 -->
+<div id="edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:28px 32px;width:100%;max-width:480px;position:relative;margin:16px;">
+    <button onclick="closeEditModal()" style="position:absolute;top:12px;right:12px;background:none;border:none;color:var(--text2);cursor:pointer;font-size:18px;line-height:1">✕</button>
+    <div style="font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:var(--text3);text-transform:uppercase;margin-bottom:20px">Editar trade</div>
+    <input type="hidden" id="edit-id">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <label style="font-size:11px;font-family:var(--mono);letter-spacing:.08em;color:var(--text3);text-transform:uppercase">Resultado</label>
+        <select id="edit-result" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--sans);font-size:14px;padding:10px 14px;outline:none;appearance:none">
+          <option value="win">Win ✓</option><option value="loss">Loss ✗</option><option value="be">Breakeven ≈</option>
+        </select>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <label style="font-size:11px;font-family:var(--mono);letter-spacing:.08em;color:var(--text3);text-transform:uppercase">P&amp;L ($)</label>
+        <input type="number" id="edit-pnl" step="0.01" oninput="calcEditPct()" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--sans);font-size:14px;padding:10px 14px;outline:none">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;grid-column:1/-1">
+        <label style="font-size:11px;font-family:var(--mono);letter-spacing:.08em;color:var(--text3);text-transform:uppercase">Setup / Estrategia</label>
+        <input type="text" id="edit-setup" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--sans);font-size:14px;padding:10px 14px;outline:none">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;grid-column:1/-1">
+        <label style="font-size:11px;font-family:var(--mono);letter-spacing:.08em;color:var(--text3);text-transform:uppercase">Notas</label>
+        <textarea id="edit-notes" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--sans);font-size:14px;padding:10px 14px;outline:none;resize:vertical;min-height:70px;width:100%"></textarea>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button id="edit-save-btn" onclick="saveEdit()" style="padding:10px 24px;border-radius:var(--radius);font-size:14px;font-weight:600;cursor:pointer;border:none;background:var(--green);color:#000;font-family:var(--sans)">Guardar cambios</button>
+      <button onclick="closeEditModal()" style="padding:10px 20px;border-radius:var(--radius);font-size:14px;cursor:pointer;border:1px solid var(--border2);background:none;color:var(--text2);font-family:var(--sans)">Cancelar</button>
+    </div>
+  </div>
+</div>
 
 <!-- Modal imagen -->
 <div class="modal-overlay" id="img-modal" onclick="closeModal(event)">
@@ -613,7 +689,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ── TABS ───────────────────────────────────────────────
+function formHasData() {
+  const pnl   = document.getElementById('f-pnl')?.value;
+  const setup = document.getElementById('f-setup')?.value;
+  const notes = document.getElementById('f-notes')?.value;
+  return !!(pnl || setup || notes || imgDataStore);
+}
+
 function switchTab(id, btn) {
+  // UX 1: warn if trade form has unsaved data
+  const currentTab = document.querySelector('.nav-btn.active');
+  const isLeavingTradeForm = currentTab && currentTab.textContent.trim().startsWith('+');
+  if (isLeavingTradeForm && formHasData() && id !== 'nuevo') {
+    if (!confirm('Tenés datos sin guardar en el formulario. ¿Salir igual?')) return;
+  }
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('sec-' + id).classList.add('active');
@@ -1013,10 +1102,15 @@ function renderHistory() {
   const filDir  = document.getElementById('fil-dir').value;
   const filSort = document.getElementById('fil-sort').value;
 
+  const filFrom = document.getElementById('fil-from').value;
+  const filTo   = document.getElementById('fil-to').value;
+
   let filtered = trades.filter(t =>
-    (!filSym || t.symbol === filSym) &&
+    (!filSym  || t.symbol === filSym) &&
     (!filRes  || t.result === filRes) &&
-    (!filDir  || t.dir    === filDir)
+    (!filDir  || t.dir    === filDir) &&
+    (!filFrom || t.date   >= filFrom) &&
+    (!filTo   || t.date   <= filTo)
   );
   if (filSort === 'oldest') filtered.sort((a, b) => a.date.localeCompare(b.date));
   else if (filSort === 'best')  filtered.sort((a, b) => b.pnl - a.pnl);
@@ -1040,24 +1134,34 @@ function renderHistory() {
     const imgCell  = t.screenshot_url
       ? `<button class="thumb-btn" onclick="openImg(${t.id})" title="Ver screenshot"><img src="" data-path="${t.screenshot_url}" alt="screenshot" onload="this.style.opacity=1" style="opacity:0;transition:opacity .2s" onerror="this.parentElement.style.display='none'"></button>`
       : `<span class="no-img">—</span>`;
-    const noteTitle = t.notes ? `title="${t.notes.replace(/"/g, '&quot;')}"` : '';
+    // UX 6: notas visibles en móvil + XSS-safe escape
+    const safeNotes = (t.notes || '').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const safeSetup = (t.setup || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const setupCell = safeSetup
+      ? `${safeSetup}${safeNotes ? `<span class="note-expand">${safeNotes}</span>` : ''}`
+      : (safeNotes ? `<span class="note-expand">${safeNotes}</span>` : '—');
     return `<tr>
-      <td class="date-cell">${t.date}</td>
-      <td class="sym-cell">${t.symbol}</td>
-      <td><span class="badge badge-${t.dir}">${t.dir.toUpperCase()}</span></td>
-      <td><span class="badge badge-${t.result}">${t.result === 'be' ? 'BE' : t.result.toUpperCase()}</span></td>
-      <td class="${pnlClass}">${(t.pnl >= 0 ? '+' : '')}$${t.pnl.toFixed(2)}</td>
-      <td class="${pnlClass}" style="font-size:12px">${(t.pct >= 0 ? '+' : '')}${t.pct.toFixed(2)}%</td>
-      <td class="setup-cell" ${noteTitle}>${t.setup || '—'}</td>
-      <td>${imgCell}</td>
-      <td><button class="del-btn" onclick="deleteTrade(${t.id})">✕</button></td>
+      <td class="date-cell" data-label="Fecha">${t.date}</td>
+      <td class="sym-cell" data-label="Símbolo">${t.symbol}</td>
+      <td data-label="Dir"><span class="badge badge-${t.dir}">${t.dir.toUpperCase()}</span></td>
+      <td data-label="Resultado"><span class="badge badge-${t.result}">${t.result === 'be' ? 'BE' : t.result.toUpperCase()}</span></td>
+      <td class="${pnlClass}" data-label="P&L $">${(t.pnl >= 0 ? '+' : '')}$${t.pnl.toFixed(2)}</td>
+      <td class="${pnlClass}" data-label="P&L %" style="font-size:12px">${(t.pct >= 0 ? '+' : '')}${t.pct.toFixed(2)}%</td>
+      <td class="setup-cell" data-label="Setup" title="${safeNotes}">${setupCell}</td>
+      <td data-label="Shot">${imgCell}</td>
+      <td data-label="">
+        <div style="display:flex;gap:4px">
+          <button class="del-btn" onclick="openEditModal(${t.id})" title="Editar" style="color:var(--text2)">✎</button>
+          <button class="del-btn" onclick="deleteTrade(${t.id})" title="Eliminar">✕</button>
+        </div>
+      </td>
     </tr>`;
   }).join('');
 
   wrap.innerHTML = `<table class="trade-table">
     <thead><tr>
       <th>Fecha</th><th>Símbolo</th><th>Dir</th><th>Resultado</th>
-      <th>P&L $</th><th>P&L %</th><th>Setup</th><th>Shot</th><th></th>
+      <th>P&L $</th><th>P&L %</th><th>Setup / Notas</th><th>Shot</th><th></th>
     </tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
@@ -1080,6 +1184,70 @@ async function openImg(id) {
 function closeModal(e) {
   if (e.target === document.getElementById('img-modal'))
     document.getElementById('img-modal').classList.remove('open');
+}
+
+// ── UX 3: EDIT TRADE ──────────────────────────────────
+function openEditModal(id) {
+  const t = trades.find(x => x.id === id);
+  if (!t) return;
+  document.getElementById('edit-id').value      = t.id;
+  document.getElementById('edit-result').value  = t.result;
+  document.getElementById('edit-pnl').value     = t.pnl;
+  document.getElementById('edit-setup').value   = t.setup  || '';
+  document.getElementById('edit-notes').value   = t.notes  || '';
+  document.getElementById('edit-modal').style.display = 'flex';
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal').style.display = 'none';
+}
+
+function calcEditPct() {
+  const pnl  = parseFloat(document.getElementById('edit-pnl').value);
+  if (isNaN(pnl)) return;
+  const deps = capitals.filter(c => c.type === 'deposito').reduce((a, c) => a + c.amount, 0);
+  const rets = capitals.filter(c => c.type === 'retiro').reduce((a, c) => a + c.amount, 0);
+  const balance = (deps - rets) + trades.reduce((a, t) => a + t.pnl, 0);
+  if (balance <= 0) return;
+  document.getElementById('edit-pnl')._pct = (pnl / balance * 100).toFixed(4);
+}
+
+async function saveEdit() {
+  const id     = parseInt(document.getElementById('edit-id').value);
+  const result = document.getElementById('edit-result').value;
+  const pnl    = parseFloat(document.getElementById('edit-pnl').value) || 0;
+  const pct    = parseFloat(document.getElementById('edit-pnl')._pct)  || 0;
+  const setup  = document.getElementById('edit-setup').value.trim();
+  const notes  = document.getElementById('edit-notes').value.trim();
+
+  const btn = document.getElementById('edit-save-btn');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+
+  const { error } = await supa.from('trades').update({ result, pnl, pct, setup, notes }).eq('id', id);
+  btn.disabled = false; btn.textContent = 'Guardar cambios';
+
+  if (error) { showToast('Error al editar: ' + error.message, true); return; }
+
+  // Update local array
+  const idx = trades.findIndex(t => t.id === id);
+  if (idx !== -1) { trades[idx] = { ...trades[idx], result, pnl, pct, setup, notes }; }
+  dataStale = false;
+  closeEditModal();
+  showToast('✓ Trade actualizado');
+  renderHistory();
+  renderDashboard();
+}
+
+// ESC closes edit modal
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeEditModal();
+});
+
+// ── UX 4: DATE FILTER HELPERS ─────────────────────────
+function clearDateFilter() {
+  document.getElementById('fil-from').value = '';
+  document.getElementById('fil-to').value   = '';
+  renderHistory();
 }
 
 // ── EXPORT CSV ─────────────────────────────────────────
