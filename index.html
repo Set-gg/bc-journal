@@ -1131,8 +1131,12 @@ function renderHistory() {
 
   const rows = filtered.map(t => {
     const pnlClass = t.pnl > 0 ? 'pnl-pos' : t.pnl < 0 ? 'pnl-neg' : 'pnl-zero';
-    const imgCell  = t.screenshot_url
-      ? `<button class="thumb-btn" onclick="openImg(${t.id})" title="Ver screenshot"><img src="" data-path="${t.screenshot_url}" alt="screenshot" onload="this.style.opacity=1" style="opacity:0;transition:opacity .2s" onerror="this.parentElement.style.display='none'"></button>`
+    // Support both old base64 (img) and new Storage path (screenshot_url)
+    const hasImg = t.screenshot_url || t.img;
+    const imgCell = hasImg
+      ? t.img
+        ? `<button class="thumb-btn" onclick="openImgBase64(${t.id})" title="Ver screenshot"><img src="${t.img}" alt="screenshot" style="opacity:1"></button>`
+        : `<button class="thumb-btn" onclick="openImg(${t.id})" title="Ver screenshot"><img src="" data-path="${t.screenshot_url}" alt="screenshot" onload="this.style.opacity=1" style="opacity:0;transition:opacity .2s" onerror="this.parentElement.style.display='none'"></button>`
       : `<span class="no-img">—</span>`;
     // UX 6: notas visibles en móvil + XSS-safe escape
     const safeNotes = (t.notes || '').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1168,6 +1172,14 @@ function renderHistory() {
 }
 
 // ── IMAGE MODAL ────────────────────────────────────────
+// Legacy: open base64 image stored directly in DB
+function openImgBase64(id) {
+  const t = trades.find(x => x.id === id);
+  if (!t || !t.img) return;
+  document.getElementById('modal-img').src = t.img;
+  document.getElementById('img-modal').classList.add('open');
+}
+
 async function openImg(id) {
   const t = trades.find(x => x.id === id);
   if (!t || !t.screenshot_url) return;
