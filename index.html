@@ -690,26 +690,55 @@ function handleFileInput(input) {
 
 // ── SAVE TRADE ─────────────────────────────────────────
 async function saveTrade() {
+  // ── CRÍTICO 3: Validación ──
+  const dateVal   = document.getElementById('f-date').value;
+  const pnlVal    = document.getElementById('f-pnl').value;
+  if (!dateVal) { showToast('Falta la fecha del trade', true); return; }
+  if (pnlVal === '' || pnlVal === null) { showToast('Ingresá el P&L del trade', true); return; }
+
   const btn = document.querySelector('#sec-nuevo .btn-save');
   btn.disabled = true; btn.textContent = 'Guardando...';
+
   const { data: { user } } = await supa.auth.getUser();
+
+  // ── CRÍTICO 1: Subir imagen a Storage (no base64 en DB) ──
+  let screenshot_url = null;
+  if (imgDataStore) {
+    try {
+      const blob     = await fetch(imgDataStore).then(r => r.blob());
+      const ext      = blob.type.includes('png') ? 'png' : 'jpg';
+      const path     = `${user.id}/${Date.now()}.${ext}`;
+      const { error: upErr } = await supa.storage.from('screenshots').upload(path, blob, { contentType: blob.type });
+      if (upErr) { showToast('Error subiendo imagen: ' + upErr.message, true); }
+      else {
+        const { data: urlData } = supa.storage.from('screenshots').getPublicUrl(path);
+        // Usar URL firmada privada en su lugar
+        const { data: signed } = await supa.storage.from('screenshots').createSignedUrl(path, 60 * 60 * 24 * 365);
+        screenshot_url = signed?.signedUrl || null;
+        // Guardar el path para poder regenerar signed URLs
+        screenshot_url = path;
+      }
+    } catch(e) { showToast('Error procesando imagen', true); }
+  }
+
+  // ── CRÍTICO 2: Sin id manual — Supabase lo genera ──
   const trade = {
-    id: Date.now(),
-    user_id: user.id,
-    date: document.getElementById('f-date').value,
-    symbol: document.getElementById('f-symbol').value,
-    dir: document.getElementById('f-dir').value,
-    result: document.getElementById('f-result').value,
-    pnl: parseFloat(document.getElementById('f-pnl').value) || 0,
-    pct: parseFloat(document.getElementById('f-pct').dataset.raw) || 0,
-    setup: document.getElementById('f-setup').value.trim(),
-    notes: document.getElementById('f-notes').value.trim(),
-    img: imgDataStore || null
+    user_id:        user.id,
+    date:           dateVal,
+    symbol:         document.getElementById('f-symbol').value,
+    dir:            document.getElementById('f-dir').value,
+    result:         document.getElementById('f-result').value,
+    pnl:            parseFloat(pnlVal) || 0,
+    pct:            parseFloat(document.getElementById('f-pct').dataset.raw) || 0,
+    setup:          document.getElementById('f-setup').value.trim(),
+    notes:          document.getElementById('f-notes').value.trim(),
+    screenshot_url: screenshot_url
   };
-  const { error } = await supa.from('trades').insert([trade]);
+
+  const { data: inserted, error } = await supa.from('trades').insert([trade]).select().single();
   btn.disabled = false; btn.textContent = 'Guardar trade';
   if (error) { showToast('Error al guardar: ' + error.message, true); return; }
-  trades.unshift(trade);
+  trades.unshift(inserted);
   clearForm();
   showToast('✓ Trade guardado');
   renderDashboard();
@@ -724,8 +753,13 @@ function clearForm() {
 
 async function deleteTrade(id) {
   if (!confirm('¿Eliminar este trade?')) return;
+  const trade = trades.find(t => t.id === id);
   const { error } = await supa.from('trades').delete().eq('id', id);
   if (error) { showToast('Error al eliminar: ' + error.message, true); return; }
+  // Borrar imagen de Storage si existe
+  if (trade?.screenshot_url) {
+    await supa.storage.from('screenshots').remove([trade.screenshot_url]);
+  }
   trades = trades.filter(t => t.id !== id);
   showToast('Trade eliminado');
   renderHistory(); renderDashboard();
@@ -734,22 +768,23 @@ async function deleteTrade(id) {
 // ── SAVE CAPITAL ───────────────────────────────────────
 async function saveCapital() {
   const amount = parseFloat(document.getElementById('c-amount').value);
-  if (!amount || amount <= 0) { alert('Ingresa un monto válido mayor a 0.'); return; }
+  if (!amount || amount <= 0) { showToast('Ingresá un monto mayor a 0', true); return; }
+  const capDate = document.getElementById('c-date').value;
+  if (!capDate) { showToast('Falta la fecha del movimiento', true); return; }
   const btn = document.querySelector('#sec-capital .btn-save');
   btn.disabled = true; btn.textContent = 'Guardando...';
   const { data: { user: capUser } } = await supa.auth.getUser();
   const cap = {
-    id: Date.now(),
-    user_id: capUser.id,
-    date: document.getElementById('c-date').value,
-    type: document.getElementById('c-type').value,
+    user_id:     capUser.id,
+    date:        document.getElementById('c-date').value,
+    type:        document.getElementById('c-type').value,
     amount,
     description: document.getElementById('c-desc').value.trim()
   };
-  const { error } = await supa.from('capitals').insert([cap]);
+  const { data: insertedCap, error } = await supa.from('capitals').insert([cap]).select().single();
   btn.disabled = false; btn.textContent = 'Guardar movimiento';
   if (error) { showToast('Error al guardar: ' + error.message, true); return; }
-  capitals.unshift(cap);
+  capitals.unshift(insertedCap);
   clearCapForm();
   updateCapMetrics();
   showToast('✓ Movimiento guardado', false);
@@ -961,8 +996,8 @@ function renderHistory() {
 
   const rows = filtered.map(t => {
     const pnlClass = t.pnl > 0 ? 'pnl-pos' : t.pnl < 0 ? 'pnl-neg' : 'pnl-zero';
-    const imgCell  = t.img
-      ? `<button class="thumb-btn" onclick="openImg(${t.id})" title="Ver screenshot"><img src="${t.img}" alt="screenshot"></button>`
+    const imgCell  = t.screenshot_url
+      ? `<button class="thumb-btn" onclick="openImg(${t.id})" title="Ver screenshot"><img src="" data-path="${t.screenshot_url}" alt="screenshot" onload="this.style.opacity=1" style="opacity:0;transition:opacity .2s" onerror="this.parentElement.style.display='none'"></button>`
       : `<span class="no-img">—</span>`;
     const noteTitle = t.notes ? `title="${t.notes.replace(/"/g, '&quot;')}"` : '';
     return `<tr>
@@ -988,11 +1023,18 @@ function renderHistory() {
 }
 
 // ── IMAGE MODAL ────────────────────────────────────────
-function openImg(id) {
+async function openImg(id) {
   const t = trades.find(x => x.id === id);
-  if (!t || !t.img) return;
-  document.getElementById('modal-img').src = t.img;
+  if (!t || !t.screenshot_url) return;
+  document.getElementById('modal-img').src = '';
   document.getElementById('img-modal').classList.add('open');
+  const { data, error } = await supa.storage.from('screenshots').createSignedUrl(t.screenshot_url, 3600);
+  if (error || !data) { showToast('Error cargando imagen', true); return; }
+  document.getElementById('modal-img').src = data.signedUrl;
+  // Update thumbs on the page with signed URL
+  document.querySelectorAll(`img[data-path="${t.screenshot_url}"]`).forEach(img => {
+    img.src = data.signedUrl;
+  });
 }
 function closeModal(e) {
   if (e.target === document.getElementById('img-modal'))
